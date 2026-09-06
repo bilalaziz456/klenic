@@ -9,6 +9,7 @@ import { Label } from "@/core/ui/label";
 import { TimeSelect } from "@/core/ui/time-select";
 import { Toast } from "@/core/ui/toast";
 import { setClinicPublicContact, type SettingsActionState } from "./actions";
+import { syncChecked } from "@/core/ui/checkbox-sync";
 
 type Range = { start: string; end: string };
 type DayState = { weekday: number; open: boolean; ranges: Range[] };
@@ -121,6 +122,7 @@ export function PublicContactForm({
                   <input
                     type="checkbox"
                     checked={day.open}
+                    ref={syncChecked(day.open)}
                     onChange={(e) => patch(d.value, { open: e.target.checked })}
                     className="size-4 accent-[var(--color-primary)]"
                   />

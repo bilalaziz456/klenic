@@ -18,6 +18,7 @@ import { Toast } from "@/core/ui/toast";
 import { DoctorScheduleFields } from "@/app/clinic/doctor-schedule-fields";
 import type { DayAvailability } from "@/core/lib/availability";
 import { STAFF_PREFIXES } from "@/core/types/auth";
+import { syncChecked } from "@/core/ui/checkbox-sync";
 
 /**
  * Edit a staff member in ONE save — name + username, plus (for doctors) the
@@ -275,6 +276,7 @@ export function DoctorSharesForm({
           <input
             type="checkbox"
             checked={needsApproval}
+            ref={syncChecked(needsApproval)}
             onChange={(e) => setNeedsApproval(e.target.checked)}
             className="size-4 accent-[var(--color-primary)]"
           />

@@ -9,6 +9,7 @@ import {
 } from "./actions";
 import { Button } from "@/core/ui/button";
 import { Toast } from "@/core/ui/toast";
+import { syncChecked } from "@/core/ui/checkbox-sync";
 
 export type QueueItem = {
   id: string;
@@ -39,6 +40,7 @@ export function ClinicDiscountPolicy({ initial }: { initial: boolean }) {
         <input
           type="checkbox"
           checked={on}
+          ref={syncChecked(on)}
           onChange={(e) => setOn(e.target.checked)}
           className="size-4 accent-[var(--color-primary)]"
         />

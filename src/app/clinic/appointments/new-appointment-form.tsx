@@ -18,6 +18,7 @@ import { Label } from "@/core/ui/label";
 import { TimeSelect } from "@/core/ui/time-select";
 import { Toast } from "@/core/ui/toast";
 import { SearchableSelect } from "@/core/ui/searchable-select";
+import { syncChecked } from "@/core/ui/checkbox-sync";
 import {
   MAX_DISCOUNT_PERCENT,
   computeBill,
@@ -436,6 +437,7 @@ export function NewAppointmentForm({
                   type="checkbox"
                   className="size-3.5 accent-[var(--primary)]"
                   checked={customTime}
+                  ref={syncChecked(customTime)}
                   onChange={(e) => setCustomTime(e.target.checked)}
                 />
                 Custom time (outside visiting hours)
@@ -560,6 +562,7 @@ export function NewAppointmentForm({
                   <input
                     type="checkbox"
                     checked={chargeConsultation}
+                    ref={syncChecked(chargeConsultation)}
                     onChange={(e) => setChargeConsultation(e.target.checked)}
                     className="size-4 accent-[var(--color-primary)]"
                   />
@@ -596,6 +599,7 @@ export function NewAppointmentForm({
                     <input
                       type="checkbox"
                       checked={checked}
+                      ref={syncChecked(checked)}
                       onChange={() =>
                         setPlanItemSel((prev) => {
                           const next = new Set(prev);

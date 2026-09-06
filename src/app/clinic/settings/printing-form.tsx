@@ -5,6 +5,7 @@ import { Button } from "@/core/ui/button";
 import { Toast } from "@/core/ui/toast";
 import { cn } from "@/core/lib/utils";
 import { setClinicPrintPaper, type SettingsActionState } from "./actions";
+import { syncChecked } from "@/core/ui/checkbox-sync";
 
 const PAPERS = [
   { value: "thermal", label: "Thermal", hint: "80mm roll printer" },
@@ -85,6 +86,7 @@ export function PrintingForm({ paper, enabled }: { paper: string; enabled: strin
                   <input
                     type="checkbox"
                     checked={isOn}
+                    ref={syncChecked(isOn)}
                     disabled={isLast}
                     onChange={() => toggle(p.value)}
                     className="size-4 accent-[var(--color-primary)]"

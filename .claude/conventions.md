@@ -71,6 +71,14 @@ note above it; obvious logic gets none.
 - Authorization is the **first** statement, via `core/auth` (`requireWorkspace` /
   `apiRequireWorkspace`). Never hand-roll a check.
 - The action owns `revalidatePath`; core domain functions never call it.
+- **A controlled checkbox in a Server Action form needs `ref={syncChecked(v)}`**
+  (`core/ui/checkbox-sync.ts`). React RESETS the form once the action completes, and a
+  reset restores each checkbox to its `defaultChecked` — which React writes on the first
+  render only. A box the user has toggled since has an unchanged `checked` prop across
+  the post-action re-render, so React writes nothing and the reset value wins: the tick
+  reverts to how it first painted while React state and the hidden input keep the new
+  value, and the form starts contradicting itself. Hidden inputs do NOT need this
+  (React keeps `defaultValue` in step) and neither does a form that redirects on submit.
 
 ## 6. Database access
 

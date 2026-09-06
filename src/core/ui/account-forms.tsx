@@ -36,6 +36,7 @@ import { Label } from "@/core/ui/label";
 import { PasswordInput } from "@/core/ui/password-input";
 import { Toast } from "@/core/ui/toast";
 import { STAFF_PREFIXES } from "@/core/types/auth";
+import { syncChecked } from "@/core/ui/checkbox-sync";
 
 const selectCls =
   "h-8 w-24 shrink-0 rounded-lg border border-input bg-[var(--input-bg)] pl-2.5 pr-8 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 select-chevron";
@@ -402,6 +403,7 @@ export function DiscountApprovalForm({
         <input
           type="checkbox"
           checked={needsApproval}
+          ref={syncChecked(needsApproval)}
           onChange={(e) => setNeedsApproval(e.target.checked)}
           className="size-4 accent-[var(--color-primary)]"
         />
