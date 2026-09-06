@@ -117,7 +117,7 @@ export function PublicContactForm({
             const day = days.find((x) => x.weekday === d.value)!;
             return (
               <div key={d.value} className="flex flex-wrap items-start gap-3 border-b pb-2 last:border-0 last:pb-0">
-                <label className="flex w-32 shrink-0 items-center gap-2 pt-1.5 text-sm">
+                <label className="flex w-full shrink-0 items-center gap-2 pt-1.5 text-sm sm:w-32">
                   <input
                     type="checkbox"
                     checked={day.open}
