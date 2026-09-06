@@ -158,29 +158,84 @@ export function describeAvailability(availability: DayAvailability[]): string {
     .join("; ");
 }
 
+/** A weekly window, independent of whose it is: a doctor's or the clinic's own. */
+export type WeeklyWindow = { weekday: number; start: string; end: string };
+
 /**
- * CONSULTATION hours, in a form a patient can read — "Mon 9:00 AM–1:00 PM; Wed 4:00
- * PM–8:00 PM". Empty string when the doctor has none set.
+ * Weekly hours as a person reads them, with CONSECUTIVE days that have identical
+ * hours collapsed:
  *
- * Distinct from `describeAvailability`, which is for STAFF: that one lists every
- * window and marks procedure ones "(proc)", which is internal vocabulary a patient
- * would not understand and, worse, would read as bookable time for a consultation.
- * Procedure windows are excluded here for that reason, not merely for tidiness — a
- * patient told "Mon 4–8pm" who turns up for a consultation in a procedure window has
- * been misinformed by us.
+ *   Mon – Thu: 10:00 AM – 9:00 PM
+ *   Fri: 10:00 AM – 1:00 PM, 3:00 PM – 11:00 PM
+ *   Sat: 10:00 AM – 10:00 PM
+ *   Sun: Closed
  *
- * 12-hour times, because that is how appointments are spoken about in this market.
+ * Collapsing is not decoration — it is how opening hours are read everywhere else,
+ * and seven near-identical lines is the kind of wall people skip in a WhatsApp
+ * message. Runs merge only when ADJACENT in `WEEKDAYS` order (Monday first, Sunday
+ * last), so a Tue/Thu-only clinic is never described as "Tue – Thu".
+ *
+ * `showClosed` is the one difference between the two callers, and it matters. A
+ * CLINIC states "Sun: Closed" because a patient wants to know. A DOCTOR is simply
+ * not listed on a day they do not work — "Dr Bilal, Sun: Closed" reads as though the
+ * clinic is shut, which it may not be. Same grouping, different silence.
+ *
+ * Lives here rather than beside either caller so there is exactly ONE definition of
+ * how hours are worded; `core/lib/clinic-hours.ts` imports it, not the other way
+ * round, which is also what keeps the two modules acyclic.
+ */
+export function describeWeeklyHours(
+  windows: readonly WeeklyWindow[],
+  opts: { showClosed?: boolean } = {},
+): string {
+  if (windows.length === 0) return "";
+  const showClosed = opts.showClosed ?? true;
+  const dayText = (weekday: number): string => {
+    const w = windows
+      .filter((h) => h.weekday === weekday)
+      .sort((a, b) => (timeToMinutes(a.start) ?? 0) - (timeToMinutes(b.start) ?? 0));
+    if (w.length === 0) return "Closed";
+    return w.map((r) => `${formatTime12(r.start)} – ${formatTime12(r.end)}`).join(", ");
+  };
+
+  // GROUP FIRST, THEN DROP — never the other way round.
+  //
+  // Filtering closed days out before grouping makes NON-ADJACENT days adjacent: a
+  // doctor working Mon and Thu only had Tue and Wed removed, so the two survivors sat
+  // next to each other and merged into "Mon – Thu" — telling patients he works two
+  // days he does not. Runs are built across the whole week, where a closed day breaks
+  // a run, and only then are the closed runs dropped.
+  const rows = WEEKDAYS.map((d) => ({ short: d.short, text: dayText(d.value) }));
+  const runs: { from: string; to: string; text: string }[] = [];
+  for (const r of rows) {
+    const last = runs[runs.length - 1];
+    if (last && last.text === r.text) last.to = r.short;
+    else runs.push({ from: r.short, to: r.short, text: r.text });
+  }
+  return runs
+    .filter((run) => showClosed || run.text !== "Closed")
+    .map((run) => `${run.from === run.to ? run.from : `${run.from} – ${run.to}`}: ${run.text}`)
+    .join("\n");
+}
+
+/**
+ * A doctor's CONSULTATION hours, in a form a patient can read.
+ *
+ * Procedure windows are excluded, and not merely unlabelled: a patient told "Mon
+ * 4–8pm" who arrives for a consultation during a procedure window has been
+ * misinformed by us. The staff-facing `describeAvailability` above keeps them, marked
+ * "(proc)", which is internal vocabulary a patient would not understand.
  */
 export function describeConsultationHours(availability: DayAvailability[]): string {
   if (!availability || availability.length === 0) return "";
-  return WEEKDAYS.filter((d) => windowsOfKind(availability, d.value, ["consultation"]).length > 0)
-    .map((d) => {
-      const windows = windowsOfKind(availability, d.value, ["consultation"])
-        .map((w) => `${formatTime12(w.start)}–${formatTime12(w.end)}`)
-        .join(", ");
-      return `${d.short} ${windows}`;
-    })
-    .join("; ");
+  const windows = WEEKDAYS.flatMap((d) =>
+    windowsOfKind(availability, d.value, ["consultation"]).map((w) => ({
+      weekday: d.value,
+      start: w.start,
+      end: w.end,
+    })),
+  );
+  return describeWeeklyHours(windows, { showClosed: false });
 }
 
 /** Appointment statuses that consume a slot toward the daily limit. */

@@ -98,7 +98,7 @@ export default async function ClinicSettingsPage() {
           <CardContent>
             <PublicContactForm
               address={clinic.publicAddress}
-              hours={clinic.openingHours}
+              hours={clinic.openingHours ?? null}
             />
           </CardContent>
         </Card>

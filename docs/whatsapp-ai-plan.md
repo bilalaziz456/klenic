@@ -474,6 +474,39 @@ everywhere else here.
 WHERE are different questions with different answers, and one of them can be missing
 while the other is not. Live 18/18.
 
+### Opening hours became structured, per day, with split shifts
+
+The free-text field lasted a day. The owner asked for hours the way Google Maps holds
+them — per weekday, with a Friday that breaks and reopens, and Sunday closed — so
+`clinics.opening_hours` is jsonb now (`0101`): one row per window, `{weekday, start,
+end}`, exactly like `users.availability` minus its `kind`. **A weekday with no rows is
+CLOSED; several rows for one weekday is a split shift.** That case is what decided the
+shape, and "one start and one end per day" would have been wrong from the start.
+
+**Nothing was migrated across.** drizzle-kit emitted `ALTER COLUMN … SET DATA TYPE
+jsonb`, which fails on any existing row, so the migration was hand-written as a DROP
+and ADD. "Mon–Sat 10–8" is not reliably parseable into windows, and a best-effort guess
+would put words in a clinic's mouth about when it is open.
+
+**Editable by the clinic admin** on `/clinic/settings`, in an editor that mirrors
+`DoctorScheduleFields` — same day rows, same `TimeSelect`, same add/remove affordance,
+same hidden-JSON-input trick. Two editors that behave alike are two an admin only has
+to learn once.
+
+**One formatter now words both.** `describeWeeklyHours` lives in `availability.ts` (the
+lower layer, so the two modules stay acyclic) and both the clinic's hours and each
+doctor's consultation hours go through it. `showClosed` is the only difference, and it
+is a real one: a clinic states "Sun: Closed" because a patient wants to know, while a
+doctor is simply not listed on a day they do not work — "Dr Bilal, Sun: Closed" reads
+as though the clinic is shut.
+
+**A real bug fell out of rendering real data, and it is the one to remember.**
+Filtering closed days out BEFORE grouping makes non-adjacent days adjacent: a doctor
+working Mon and Thu had Tue and Wed removed, the two survivors sat next to each other,
+and they merged into **"Mon – Thu"** — telling patients he works two days he does not.
+Runs are built across the whole week, where a closed day breaks a run, and only then
+are closed runs dropped. `scripts/test-clinic-hours.ts` pins it.
+
 **What is NOT proven.** No real patient has used any of this. The prompt smoke test
 passes 8/8 against live Haiku (`--live`), including Roman Urdu, the
 symptom-vs-named-procedure line and a prompt-injection attempt — but a smoke test is

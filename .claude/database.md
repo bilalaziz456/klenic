@@ -935,11 +935,21 @@ these for churn-risk + usage/cost anomaly flags.
   **`public_address` is deliberately NOT the existing `address`**, which is a
   super-admin CRM field used as the bill-to line on FlexicaAI's subscription invoices;
   a group's billing may go to a head office while the patient needs the branch, and
-  there is no fallback between them. **`opening_hours` is free text and DISPLAY-ONLY**
+  there is no fallback between them. **`opening_hours` is STRUCTURED jsonb (migration `0101`) and DISPLAY-ONLY**
   — it drives nothing, and `checkDoctorSlot` is untouched. Bookability comes from each
   doctor's `availability`, and the WhatsApp timings reply prints BOTH ("we're open" and
   "when our doctors see patients") so the clinic's own words can never mislead about
   when a patient can actually be seen.
+- Migration **`0101`** retypes `clinics.opening_hours` from text to **jsonb** — one row
+  per window, `{weekday, start, end}`, like `users.availability` minus its `kind`. A
+  weekday with no rows is CLOSED; several rows for one weekday is a split shift (a
+  Friday that breaks for Jummah and reopens), which is the case that decided the shape.
+  **Hand-written as DROP + ADD:** drizzle-kit emitted `ALTER COLUMN … SET DATA TYPE
+  jsonb`, which fails on any existing row, and free text like "Mon–Sat 10–8" is not
+  reliably parseable into windows — guessing would put words in a clinic's mouth.
+  Validated on the way in by `core/lib/clinic-hours.ts` (jsonb is not an exemption,
+  conventions §4), capped at 21 windows. Still display-only; `checkDoctorSlot` is
+  untouched.
 - Migration **`0082`** makes the scribe ASYNC (delta D-08 / ADR-020). Adds
   `transcribing` and `failed` to the `visit_status` enum, plus
   `visits.transcribe_started_at` (timestamptz) and `visits.transcribe_error` (text).

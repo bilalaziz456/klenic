@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/core/db";
 import { clinics } from "@/core/db/schema";
 import type { InvoicePaperCode } from "@/core/db/vocabulary-seed";
+import type { ClinicHour } from "@/core/lib/clinic-hours";
 
 /**
  * Clinic-owned settings a clinic admin changes about THEIR OWN clinic — CORE per
@@ -61,7 +62,7 @@ export async function setDiscountNeedsApproval(
  */
 export async function setPublicContact(
   clinicId: string,
-  values: { publicAddress: string | null; openingHours: string | null },
+  values: { publicAddress: string | null; openingHours: ClinicHour[] | null },
 ): Promise<void> {
   await db
     .update(clinics)

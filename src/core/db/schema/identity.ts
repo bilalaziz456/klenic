@@ -1,3 +1,4 @@
+import type { ClinicHour } from "@/core/lib/clinic-hours";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -99,18 +100,23 @@ export const clinics = pgTable(
      */
     publicAddress: text("public_address"),
     /**
-     * When the clinic is OPEN, as free text ("Mon–Sat 9:00 AM – 9:00 PM, closed
-     * Sunday"). Free text because it is DISPLAY-ONLY and clinic-authored; a
-     * structured schedule would imply it drives something.
+     * When the clinic is OPEN — one row per window, per weekday. A weekday with no
+     * rows is CLOSED; several rows for one weekday is a split shift, which is the
+     * case that decided the shape: a Friday that breaks for Jummah and reopens is
+     * normal here, so one start and one end per day would have been wrong.
      *
-     * IT DOES NOT AFFECT BOOKING, and that separation is the whole reason it is safe
-     * to have. Bookability is decided by each doctor's `availability` via
-     * `checkDoctorSlot`, so this cannot make a slot bookable or refuse one. The
-     * WhatsApp reply states both — when the clinic is open, and when doctors see
-     * patients — because they are two different true things, and a patient who is
-     * told only the first will turn up when nobody can see them.
+     * Was free text for a day (migration `0099`) and is structured now (`0101`),
+     * because "Mon–Sat 10–8" cannot be grouped, cannot be shown per day, and cannot
+     * be checked. Nothing is migrated across: a sentence a human typed is not
+     * reliably parseable into windows, and guessing would put words in a clinic's
+     * mouth about when it is open.
+     *
+     * STILL DISPLAY-ONLY. It drives nothing — `checkDoctorSlot` is untouched — and
+     * the WhatsApp reply prints these alongside the doctors' own hours so the two can
+     * never disagree about when a patient can actually be seen. Validated on the way
+     * in by `core/lib/clinic-hours.ts` (conventions §4: jsonb is not an exemption).
      */
-    openingHours: text("opening_hours"),
+    openingHours: jsonb("opening_hours").$type<ClinicHour[]>(),
     // Billing/invoice settings (Finance). `invoicePaper` is the default print size
     // (a4|a5|thermal); `invoicePrefix` prefixes the human invoice label (e.g.
     // "INV-"); `nextInvoiceNo` is the per-clinic counter atomically bumped when an

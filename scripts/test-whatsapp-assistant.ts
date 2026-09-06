@@ -181,7 +181,7 @@ async function main() {
       ],
     }).where(eq(u.id, doctorId));
     const [doc] = await listQuotableDoctors(clinicId);
-    check("the consultation window is shown", doc.hours.includes("9:00 AM–1:00 PM"), true);
+    check("the consultation window is shown", doc.hours.includes("9:00 AM – 1:00 PM"), true);
     // A patient told "Mon 4–8pm" who arrives for a consultation in a PROCEDURE window
     // has been misinformed by us — so those windows are excluded, not merely unlabelled.
     check("…and the procedure window is NOT", doc.hours.includes("4:00 PM"), false);

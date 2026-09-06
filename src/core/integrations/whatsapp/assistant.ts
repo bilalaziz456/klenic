@@ -5,6 +5,7 @@ import { getClinic } from "@/core/clinics/get-clinic";
 import { clinicHasFeature } from "@/core/lib/features";
 import { classifyMessage, worthClassifying, type ChatIntent } from "@/core/ai/chat-engine";
 import { formatWhen } from "@/core/appointments/parse-when";
+import { describeClinicHours, type ClinicHour } from "@/core/lib/clinic-hours";
 import { getNextUpcomingAppointment } from "@/core/appointments/upcoming";
 import { listQuotableProcedures } from "@/core/procedures/quotable";
 import { listQuotableDoctors, type QuotableDoctor } from "@/core/users/quotable-doctors";
@@ -306,12 +307,12 @@ export async function runAssistant(args: {
  */
 function hoursMessage(
   doctors: readonly QuotableDoctor[],
-  openingHours: string | null,
+  openingHours: ClinicHour[] | null,
 ): string | null {
   // A doctor with neither set hours nor flexible hours tells the patient nothing, so
   // they are left out rather than listed under a heading that promises times.
   const withHours = doctors.filter((d) => d.hours || d.flexible);
-  const open = openingHours?.trim();
+  const open = describeClinicHours(openingHours ?? []);
   if (!open && withHours.length === 0) return null;
 
   const parts: string[] = [];
@@ -334,10 +335,10 @@ function hoursMessage(
  * address because it was the only one we had is a worse failure than saying nothing
  * and letting the front desk answer.
  */
-function locationMessage(publicAddress: string | null, openingHours: string | null): string | null {
+function locationMessage(publicAddress: string | null, openingHours: ClinicHour[] | null): string | null {
   const address = publicAddress?.trim();
   if (!address) return null;
-  const open = openingHours?.trim();
+  const open = describeClinicHours(openingHours ?? []);
   return (
     `We're at:\n${address}` +
     (open ? `\n\nOpen: ${open}` : "") +
