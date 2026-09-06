@@ -45,7 +45,10 @@ export async function TreatmentEstimate({
         </Link>
       </div>
 
-      <InvoicePrintFrame defaultFormat={clinic?.invoicePaper ?? "a4"}>
+      <InvoicePrintFrame
+        defaultFormat={clinic?.invoicePaper ?? "a4"}
+        allowed={clinic?.invoicePapersEnabled}
+      >
         <div className="flex items-start justify-between gap-3 border-b border-black/20 pb-2">
           <div>
             <div className="text-base font-bold">{clinic?.name ?? "Clinic"}</div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { setInvoicePaper, setPublicContact } from "@/core/clinics/settings";
+import { setInvoicePapers, setPublicContact } from "@/core/clinics/settings";
 import { z } from "zod";
 import { zodErrorMessage } from "@/core/lib/zod-error";
 import { clinicHoursSchema } from "@/core/lib/clinic-hours";
@@ -20,9 +20,13 @@ const publicContactSchema = z.object({
 
 
 /**
- * Set the clinic's DEFAULT print paper size (`clinics.invoice_paper`) — the size the
- * invoice / receipt / document print screens open on. Clinic-wide preference, so it's
- * clinic-admin only. Clinic-scoped (updates the caller's own clinic by id).
+ * The clinic's print sizes — which are OFFERED on every print screen, and which opens
+ * first. Clinic-admin only, like the rest of this card.
+ *
+ * TWO THINGS, one form, because they constrain each other: a default that is not
+ * offered is a print screen opening on a button that is not there. Rejected here with
+ * a message the admin can act on; `setInvoicePapers` re-applies both rules as a
+ * backstop.
  */
 export async function setClinicPrintPaper(
   _prev: SettingsActionState,
@@ -32,17 +36,27 @@ export async function setClinicPrintPaper(
   if (user.role !== "clinic_admin" || !user.clinicId) {
     return { error: "Only the clinic admin can change the printing settings." };
   }
-  const paper = String(formData.get("paper") ?? "");
-  const code = asCode<InvoicePaperCode>(INVOICE_PAPER_ROWS, paper);
-  if (!code) return { error: "Choose a valid paper size." };
 
-  await setInvoicePaper(user.clinicId, code);
+  const enabled = formData
+    .getAll("papers")
+    .map((v) => asCode<InvoicePaperCode>(INVOICE_PAPER_ROWS, String(v)))
+    .filter((c): c is InvoicePaperCode => Boolean(c));
+  // Never let a clinic switch every size off: the print screens would offer nothing.
+  if (enabled.length === 0) return { error: "Keep at least one paper size." };
+
+  const paper = asCode<InvoicePaperCode>(INVOICE_PAPER_ROWS, String(formData.get("paper") ?? ""));
+  if (!paper) return { error: "Choose a valid paper size." };
+  if (!enabled.includes(paper)) {
+    return { error: "The default size must be one of the sizes you use." };
+  }
+
+  await setInvoicePapers(user.clinicId, enabled, paper);
 
   await logActivity({
     action: "update",
     entity: "settings",
     clinicId: user.clinicId,
-    summary: `Set default print paper size to ${paper.toUpperCase()}`,
+    summary: `Print sizes set to ${enabled.join(", ").toUpperCase()} (default ${paper.toUpperCase()})`,
   });
   revalidatePath("/clinic/settings");
   return { saved: true };

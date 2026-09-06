@@ -15,10 +15,31 @@ import type { ClinicHour } from "@/core/lib/clinic-hours";
  * Takes `clinicId` first and filters on it, so a caller cannot write to another
  * tenant's row even by mistake.
  */
-export async function setInvoicePaper(clinicId: string, paper: InvoicePaperCode): Promise<void> {
+/**
+ * The clinic's print sizes: which are OFFERED, and which of them opens first.
+ *
+ * Written together on purpose. They are two halves of one decision, and setting them
+ * separately is what would let a clinic end up defaulting to a size it no longer
+ * offers — a print screen that opens on a button that is not there.
+ *
+ * TWO INVARIANTS, enforced here rather than trusted from the caller, because this is
+ * the last place before the write and a clinic that cannot print anything is a far
+ * worse outcome than a rejected form:
+ *   1. the list is never empty — an empty list means no print button at all;
+ *   2. the default is always one of the enabled sizes.
+ * Both are also checked in the action for a decent error message; this is the backstop
+ * that holds if anything else ever calls in.
+ */
+export async function setInvoicePapers(
+  clinicId: string,
+  enabled: InvoicePaperCode[],
+  fallbackDefault: InvoicePaperCode,
+): Promise<void> {
+  const papers = enabled.length > 0 ? enabled : [fallbackDefault];
+  const paper = papers.includes(fallbackDefault) ? fallbackDefault : papers[0];
   await db
     .update(clinics)
-    .set({ invoicePaper: paper, updatedAt: new Date() })
+    .set({ invoicePapersEnabled: papers, invoicePaper: paper, updatedAt: new Date() })
     .where(eq(clinics.id, clinicId));
 }
 

@@ -125,6 +125,27 @@ export const clinics = pgTable(
       .notNull()
       .default("a4")
       .references(() => invoicePapers.id),
+    /**
+     * The print sizes this clinic actually USES — which buttons the print screens
+     * offer. Distinct from `invoicePaper` above, which is only which of them opens
+     * FIRST: a default is not the same question as what is available, and conflating
+     * them left a clinic with one thermal printer being offered A5 on every invoice,
+     * receipt, statement and estimate, where a receptionist could pick it by accident
+     * and get a print the printer cannot produce.
+     *
+     * `text[]` of codes, matching `features_enabled` and `modules_enabled` rather than
+     * the FK the single-value column uses — Postgres cannot foreign-key each element
+     * of an array, and the codes are narrowed in the action instead.
+     *
+     * Defaults to ALL THREE, so nothing changes for a clinic that never touches it.
+     * Two invariants live in the action, not here: the list can never be emptied, and
+     * `invoicePaper` must be one of its members — a clinic that cannot print anything
+     * is the failure this must not create.
+     */
+    invoicePapersEnabled: text("invoice_papers_enabled")
+      .array()
+      .notNull()
+      .default(sql`ARRAY['thermal','a5','a4']::text[]`),
     invoicePrefix: text("invoice_prefix").notNull().default("INV-"),
     nextInvoiceNo: integer("next_invoice_no").notNull().default(1),
     // The calendar year `next_invoice_no` currently belongs to. Invoice numbers RESET

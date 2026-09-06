@@ -22,18 +22,34 @@ type Fmt = keyof typeof FORMATS;
  */
 export function InvoicePrintFrame({
   defaultFormat = "a4",
+  allowed,
   logo = null,
   children,
 }: {
   defaultFormat?: string;
+  /**
+   * The sizes this clinic actually uses (`clinics.invoice_papers_enabled`). Omitted
+   * means all of them, which is what the admin-side print screens want — FlexicaAI's
+   * own subscription invoices are not a clinic's document and are not governed by a
+   * clinic's printer.
+   */
+  allowed?: readonly string[];
   /** Clinic logo as a `data:` URI (server-inlined). Printed in B&W at the top; null = none. */
   logo?: string | null;
   children: React.ReactNode;
 }) {
-  const [fmt, setFmt] = useState<Fmt>(
-    defaultFormat in FORMATS ? (defaultFormat as Fmt) : "a4",
-  );
-  const f = FORMATS[fmt];
+  const all = Object.keys(FORMATS) as Fmt[];
+  // An unknown or empty list falls back to everything rather than to nothing: a
+  // misconfigured clinic should still be able to print.
+  const offered = (() => {
+    const picked = all.filter((k) => allowed?.includes(k));
+    return picked.length > 0 ? picked : all;
+  })();
+  const [fmt, setFmt] = useState<Fmt>(() => {
+    const wanted = defaultFormat as Fmt;
+    return offered.includes(wanted) ? wanted : offered[0];
+  });
+  const f = FORMATS[offered.includes(fmt) ? fmt : offered[0]];
   const css = `@media print {
   @page { size: ${f.page}; margin: ${f.margin}; }
   aside, header { display: none !important; }
@@ -46,21 +62,25 @@ export function InvoicePrintFrame({
     <div>
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="no-print mb-4 flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground">Format</span>
-        {(Object.keys(FORMATS) as Fmt[]).map((k) => (
-          <button
-            key={k}
-            type="button"
-            aria-pressed={fmt === k}
-            onClick={() => setFmt(k)}
-            className={cn(
-              "rounded-lg border px-3 py-1 text-sm transition-colors",
-              fmt === k ? "border-primary bg-primary/10" : "hover:bg-accent",
-            )}
-          >
-            {FORMATS[k].label}
-          </button>
-        ))}
+        {offered.length > 1 ? (
+          <>
+            <span className="text-xs text-muted-foreground">Format</span>
+            {offered.map((k) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={fmt === k}
+                onClick={() => setFmt(k)}
+                className={cn(
+                  "rounded-lg border px-3 py-1 text-sm transition-colors",
+                  fmt === k ? "border-primary bg-primary/10" : "hover:bg-accent",
+                )}
+              >
+                {FORMATS[k].label}
+              </button>
+            ))}
+          </>
+        ) : null}
         <Button size="sm" onClick={() => window.print()}>
           <Printer className="size-4" aria-hidden="true" /> Print / Save PDF
         </Button>

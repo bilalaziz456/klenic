@@ -1,0 +1,1 @@
+ALTER TABLE "clinics" ADD COLUMN "invoice_papers_enabled" text[] DEFAULT ARRAY['thermal','a5','a4']::text[] NOT NULL;

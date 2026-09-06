@@ -81,7 +81,11 @@ export default async function InvoicePage({
         </Link>
       </div>
 
-      <InvoicePrintFrame defaultFormat={clinic?.invoicePaper ?? "a4"} logo={logo}>
+      <InvoicePrintFrame
+        defaultFormat={clinic?.invoicePaper ?? "a4"}
+        allowed={clinic?.invoicePapersEnabled}
+        logo={logo}
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-black/20 pb-2">
           <div>

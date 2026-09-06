@@ -715,6 +715,13 @@
       "when": 1788652459969,
       "tag": "0101_grey_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1788654563557,
+      "tag": "0102_yummy_zodiak",
+      "breakpoints": true
     }
   ]
 }

@@ -108,10 +108,15 @@ export default async function ClinicSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Printing</CardTitle>
-            <CardDescription>The clinic&apos;s default paper size for printed documents.</CardDescription>
+            <CardDescription>
+              Which paper sizes your print screens offer, and which one opens first.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <PrintingForm paper={clinic.invoicePaper ?? "a4"} />
+            <PrintingForm
+              paper={clinic.invoicePaper ?? "a4"}
+              enabled={clinic.invoicePapersEnabled}
+            />
           </CardContent>
         </Card>
       ) : null}

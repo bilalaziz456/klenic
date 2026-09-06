@@ -86,7 +86,7 @@ is_active)`, company-global — no
 | `discount_bearers` | clinic, doctor, split | `appointments.discount_borne_by` |
 | `clinic_statuses` | trial, active, suspended, past_due, cancelled | `clinics.status` |
 | `billing_cycles` | monthly, 2m, quarter, half, annual | `clinics.billing_cycle` |
-| `invoice_papers` | thermal, a5, a4 | `clinics.invoice_paper` |
+| `invoice_papers` | thermal, a5, a4 | `clinics.invoice_paper` (the default) + `clinics.invoice_papers_enabled` (which are offered) |
 | `treatment_plan_statuses` | proposed, active, completed, cancelled | `treatment_plans.status` |
 | `treatment_item_statuses` | planned, in_progress, done, cancelled | `treatment_plan_items.status` |
 | `attachment_kinds` | xray, photo, document, consent | `clinical_attachments.kind` |
@@ -501,7 +501,8 @@ subscription **billing** (`monthly_price`, `billing_cycle` = the package
 monthly/2m/quarter/half/annual, `grace_days`, `payment_reminder_days` [days before the
 paid-through date to show a "payment coming up" heads-up, default 5], lifecycle dates
 `trial_start_at` / `trial_ends_at` / `activated_at` [= subscription/active start] +
-`status`, invoice counter `next_invoice_no`/`invoice_prefix`/`invoice_paper`),
+`status`, invoice counter `next_invoice_no`/`invoice_prefix`/`invoice_paper`
+[the size a print screen OPENS at] + `invoice_papers_enabled` [which sizes it OFFERS]),
 **account-manager** `assigned_to` → users (self-ref FK), a
 **payment-commitment** follow-up (`payment_commitment_at`/`_note`), a **health
 follow-up / snooze** for churn/usage-flag alerts (`health_followup_at`/`_note` — a
@@ -950,6 +951,22 @@ these for churn-risk + usage/cost anomaly flags.
   Validated on the way in by `core/lib/clinic-hours.ts` (jsonb is not an exemption,
   conventions §4), capped at 21 windows. Still display-only; `checkDoctorSlot` is
   untouched.
+- Migration **`0102`** adds `clinics.invoice_papers_enabled` text[] (default all three)
+  — which paper sizes a clinic's print screens OFFER, distinct from `invoice_paper`,
+  which is the one they OPEN at. A clinic with no A5 printer had no way to stop being
+  asked about A5 on every invoice, receipt, statement, chart print and estimate.
+  **Two invariants, both enforced in `core/clinics/settings.ts#setInvoicePapers` rather
+  than in the form**, because the form is not the only thing that could ever write here:
+  the list is never empty, and the default is always a member of it (switching off the
+  current default MOVES the default rather than leaving a print screen opening at a size
+  it no longer offers). The action rejects both violations with a message; the write path
+  also repairs them, so a bad pair cannot be stored either way.
+  **A single enabled size hides the picker entirely** — `InvoicePrintFrame` drops the
+  whole Format row at `offered.length <= 1`, since a one-option chooser is a control
+  that cannot do anything. `allowed` is optional and falls back to ALL sizes when
+  absent or unrecognised, so the admin-side subscription-invoice print (a COMPANY
+  document, not a clinic one) is deliberately left unchanged.
+  `scripts/test-print-papers.ts`.
 - Migration **`0082`** makes the scribe ASYNC (delta D-08 / ADR-020). Adds
   `transcribing` and `failed` to the `visit_status` enum, plus
   `visits.transcribe_started_at` (timestamptz) and `visits.transcribe_error` (text).
